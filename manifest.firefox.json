@@ -2,6 +2,7 @@
   "background": {
     "scripts": ["background.js"]
   },
+  "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
   "browser_specific_settings": {
     "gecko": {
       "id": "calliope@nelson.dev",

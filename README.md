@@ -39,7 +39,8 @@ calliope/
 
 ### Voice engine
 
-- **Primary:** [Piper](https://github.com/rhasspy/piper) neural voices served by a small local HTTP server (`tools/piper-server.py`, port 8473) — free, offline, natural-sounding, and immune to browser sandboxing (snap/flatpak browsers can't reach host speech-dispatcher). Voices installed in `~/.local/share/piper/`: English (US) ×2, Português (Portugal), Français, Español, Deutsch, Italiano.
+- **Primary:** [Piper](https://github.com/rhasspy/piper) neural voices running **inside the extension** via WebAssembly (`src/synth/synthesizer.js`): text is phonemized with espeak-ng (wasm) and synthesized with onnxruntime-web. Zero setup for users — voice models (~60 MB each) are downloaded from Hugging Face on first use and cached in OPFS. All wasm binaries ship in the extension package (`vendor/`), satisfying store no-remote-code policies. Voices: English (US) ×2, Português (Portugal), Français, Español, Deutsch, Italiano.
+- On Chrome/Brave, synthesis runs in an **offscreen document** (MV3 service workers can't host the emscripten runtime); on Firefox it runs in the background event page.
 - **Fallback:** Web Speech API (`speechSynthesis`) — whatever voices the browser provides.
 - The `tts/engine.js` abstraction keeps engines swappable.
 

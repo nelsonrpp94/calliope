@@ -3,8 +3,11 @@
   "name": "Calliope",
   "version": "0.1.0",
   "description": "Reads selected text aloud with a human voice. Select, play, listen.",
-  "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
-  "host_permissions": ["http://127.0.0.1/*"],
+  "permissions": ["contextMenus", "storage", "activeTab", "scripting", "offscreen"],
+  "host_permissions": ["https://huggingface.co/*", "https://*.hf.co/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "background": {
     "service_worker": "background.js"
   },

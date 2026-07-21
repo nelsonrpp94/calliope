@@ -1,4 +1,37 @@
 import browser from "webextension-polyfill";
+import { handleSynthesize, registerSynthHost } from "./synth/host.js";
+
+// Chrome MV3: synthesis runs in an offscreen document. Firefox: the
+// background event page is itself a document, so it hosts the engine.
+const HAS_OFFSCREEN = typeof chrome !== "undefined" && !!chrome.offscreen;
+if (!HAS_OFFSCREEN) registerSynthHost();
+
+async function ensureOffscreenDocument() {
+  try {
+    await chrome.offscreen.createDocument({
+      url: "offscreen/offscreen.html",
+      reasons: ["WORKERS"],
+      justification:
+        "Runs the bundled WebAssembly text-to-speech engine (Piper) that synthesizes speech locally.",
+    });
+  } catch (err) {
+    // "Only a single offscreen document may be created" -> already exists.
+    if (!/single offscreen/i.test(String(err?.message))) throw err;
+  }
+}
+
+async function requestSynthesis(message) {
+  const payload = { ...message, type: "calliope:synthesize" };
+  if (!HAS_OFFSCREEN) return handleSynthesize(payload);
+  await ensureOffscreenDocument();
+  let result = await browser.runtime.sendMessage(payload).catch(() => undefined);
+  if (result === undefined) {
+    // Offscreen document may still be booting; retry once.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    result = await browser.runtime.sendMessage(payload).catch(() => undefined);
+  }
+  return result ?? { error: "Speech engine did not respond." };
+}
 
 // Playback state lives here so it survives popup close. The actual speech
 // runs in the content script of `playback.tabId` (speechSynthesis is not
@@ -108,58 +141,11 @@ browser.commands.onCommand.addListener(async (command) => {
   if (tab?.id) readSelectionInTab(tab.id);
 });
 
-const LOCAL_TTS_URL = "http://127.0.0.1:8473";
-const LOCAL_SERVER_HINT =
-  "Local Piper server is not running. Start it with: systemctl --user start calliope-piper";
-
-function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(binary);
-}
-
-async function fetchLocalTTS({ text, voice }) {
-  try {
-    const response = await fetch(`${LOCAL_TTS_URL}/tts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voice }),
-    });
-    if (!response.ok) {
-      const detail = (await response.text()).slice(0, 200);
-      return { error: `Piper server error ${response.status}: ${detail}` };
-    }
-    return {
-      audio: arrayBufferToBase64(await response.arrayBuffer()),
-      mime: "audio/wav",
-    };
-  } catch {
-    return { error: LOCAL_SERVER_HINT };
-  }
-}
-
-async function listLocalVoices() {
-  try {
-    const response = await fetch(`${LOCAL_TTS_URL}/voices`);
-    if (!response.ok) return { error: `server error ${response.status}` };
-    return await response.json();
-  } catch {
-    return { error: LOCAL_SERVER_HINT };
-  }
-}
-
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message?.type) {
-    // Content script asks for synthesized audio (the host permission lives
-    // here, and background fetches are exempt from page CORS).
+    // Content script asks for synthesized audio.
     case "calliope:fetch-tts":
-      return fetchLocalTTS(message);
-    case "calliope:list-local-voices":
-      return listLocalVoices();
+      return requestSynthesis(message);
     // Engine state reported by the content script doing the reading.
     case "calliope:state-change":
       if (sender.tab?.id === playback.tabId) {

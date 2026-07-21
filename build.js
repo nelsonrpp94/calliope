@@ -26,11 +26,33 @@ function buildManifest() {
   fs.writeFileSync(path.join(outdir, "manifest.json"), JSON.stringify(base, null, 2));
 }
 
+function copyVendorAssets() {
+  const vendor = [
+    ["node_modules/onnxruntime-web/dist/ort-wasm-simd.wasm", "vendor/ort/ort-wasm-simd.wasm"],
+    ["node_modules/onnxruntime-web/dist/ort-wasm.wasm", "vendor/ort/ort-wasm.wasm"],
+    ["node_modules/@diffusionstudio/piper-wasm/build/piper_phonemize.wasm", "vendor/piper/piper_phonemize.wasm"],
+    ["node_modules/@diffusionstudio/piper-wasm/build/piper_phonemize.data", "vendor/piper/piper_phonemize.data"],
+  ];
+  for (const [src, dest] of vendor) {
+    const target = path.join(outdir, dest);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(src, target);
+  }
+}
+
 function copyStatic() {
   fs.mkdirSync(path.join(outdir, "popup"), { recursive: true });
   fs.copyFileSync("src/popup/popup.html", path.join(outdir, "popup/popup.html"));
   fs.copyFileSync("src/popup/popup.css", path.join(outdir, "popup/popup.css"));
   fs.cpSync("icons", path.join(outdir, "icons"), { recursive: true });
+  if (target === "chrome") {
+    fs.mkdirSync(path.join(outdir, "offscreen"), { recursive: true });
+    fs.copyFileSync(
+      "src/offscreen/offscreen.html",
+      path.join(outdir, "offscreen/offscreen.html")
+    );
+  }
+  copyVendorAssets();
   buildManifest();
 }
 
@@ -47,14 +69,21 @@ async function run() {
   fs.rmSync(outdir, { recursive: true, force: true });
   fs.mkdirSync(outdir, { recursive: true });
 
+  const entryPoints = {
+    background: "src/background.js",
+    content: "src/content.js",
+    "popup/popup": "src/popup/popup.js",
+  };
+  if (target === "chrome") {
+    entryPoints["offscreen/offscreen"] = "src/offscreen/offscreen.js";
+  }
+
   const options = {
-    entryPoints: {
-      background: "src/background.js",
-      content: "src/content.js",
-      "popup/popup": "src/popup/popup.js",
-    },
+    entryPoints,
     bundle: true,
     format: "iife",
+    // Node built-ins referenced by emscripten's (unused) Node branch.
+    external: ["fs", "path"],
     outdir,
     sourcemap: !watch ? false : "inline",
     minify: !watch,

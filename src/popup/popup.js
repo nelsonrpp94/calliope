@@ -1,4 +1,5 @@
 import browser from "webextension-polyfill";
+import { VOICES, DEFAULT_VOICE } from "../tts/catalog.js";
 
 const playButton = document.getElementById("play");
 const pauseButton = document.getElementById("pause");
@@ -20,19 +21,8 @@ const STATUS_TEXT = {
   stopped: "Stopped",
 };
 
-const LOCALE_LABELS = {
-  en_US: "English (US)",
-  en_GB: "English (UK)",
-  pt_PT: "Português (Portugal)",
-  pt_BR: "Português (Brasil)",
-  fr_FR: "Français",
-  es_ES: "Español",
-  de_DE: "Deutsch",
-  it_IT: "Italiano",
-};
-
 let currentState = "stopped";
-let settings = { voice: null, localVoice: "en_US-lessac-medium" };
+let settings = { voice: null, localVoice: DEFAULT_VOICE };
 
 function renderState(state) {
   currentState = state;
@@ -50,17 +40,6 @@ function renderRate(rate) {
 function showError(message) {
   errorBox.textContent = message;
   errorBox.hidden = false;
-}
-
-/** "pt_PT-tugao-medium" -> "Tugao — Português (Portugal)" */
-function voiceLabel(name) {
-  const match = name.match(/^([a-z]{2}_[A-Z]{2})-(.+)-(x_low|low|medium|high)$/);
-  if (!match) return name;
-  const [, locale, speaker] = match;
-  const language = LOCALE_LABELS[locale] || locale.replace("_", "-");
-  const pretty =
-    speaker[0].toUpperCase() + speaker.slice(1).replace(/_/g, " ");
-  return `${pretty} — ${language}`;
 }
 
 async function getBrowserVoices() {
@@ -83,28 +62,15 @@ async function renderVoices() {
   voiceSelect.innerHTML = "";
 
   if (engine === "local") {
-    const result = await browser.runtime.sendMessage({
-      type: "calliope:list-local-voices",
-    });
-    if (result?.error || !result?.voices?.length) {
+    for (const voice of VOICES) {
       const option = document.createElement("option");
-      option.value = settings.localVoice || "";
-      option.textContent = settings.localVoice
-        ? voiceLabel(settings.localVoice)
-        : "(server not running)";
+      option.value = voice.id;
+      option.textContent = voice.label;
       voiceSelect.append(option);
-      if (result?.error) showError(result.error);
-    } else {
-      for (const name of result.voices) {
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = voiceLabel(name);
-        voiceSelect.append(option);
-      }
-      voiceSelect.value = result.voices.includes(settings.localVoice)
-        ? settings.localVoice
-        : result.default || result.voices[0];
     }
+    voiceSelect.value = VOICES.some((v) => v.id === settings.localVoice)
+      ? settings.localVoice
+      : DEFAULT_VOICE;
   } else {
     const defaultOption = document.createElement("option");
     defaultOption.value = "";
@@ -189,6 +155,11 @@ voiceSelect.addEventListener("change", () => {
 browser.runtime.onMessage.addListener((message) => {
   if (message?.type === "calliope:state") renderState(message.state);
   if (message?.type === "calliope:error") showError(message.message);
+  if (message?.type === "calliope:note") {
+    // Transient status notes from the speech engine (e.g. download progress).
+    if (message.text) statusText.textContent = message.text;
+    else renderState(currentState);
+  }
 });
 
 init();

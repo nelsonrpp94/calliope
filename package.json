@@ -14,5 +14,9 @@
     "esbuild": "^0.21.5",
     "web-ext": "^7.12.0",
     "webextension-polyfill": "^0.12.0"
+  },
+  "dependencies": {
+    "@diffusionstudio/piper-wasm": "^1.0.0",
+    "@diffusionstudio/vits-web": "^1.0.3"
   }
 }

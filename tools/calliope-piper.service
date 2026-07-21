@@ -1,9 +1,0 @@
-[Unit]
-Description=Calliope local Piper TTS server (http://127.0.0.1:8473)
-
-[Service]
-ExecStart=/usr/bin/python3 %h/.local/opt/calliope-piper-server/server.py
-Restart=on-failure
-
-[Install]
-WantedBy=default.target
