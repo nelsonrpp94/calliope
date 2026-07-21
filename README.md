@@ -39,8 +39,9 @@ calliope/
 
 ### Voice engine
 
-- **MVP:** Web Speech API (`speechSynthesis`) — free, offline, no backend.
-- **Later:** Pluggable cloud TTS (ElevenLabs / OpenAI TTS / Google Cloud TTS) as a premium voice option. The `tts/engine.js` abstraction keeps this swappable.
+- **Primary:** [Piper](https://github.com/rhasspy/piper) neural voices served by a small local HTTP server (`tools/piper-server.py`, port 8473) — free, offline, natural-sounding, and immune to browser sandboxing (snap/flatpak browsers can't reach host speech-dispatcher). Voices installed in `~/.local/share/piper/`: English (US) ×2, Português (Portugal), Français, Español, Deutsch, Italiano.
+- **Fallback:** Web Speech API (`speechSynthesis`) — whatever voices the browser provides.
+- The `tts/engine.js` abstraction keeps engines swappable.
 
 ### Key implementation notes
 
@@ -58,7 +59,6 @@ calliope/
 4. Chunking + sentence highlighting
 5. Firefox port and `web-ext` testing
 6. Store submissions (Chrome Web Store, Firefox Add-ons)
-7. Premium cloud voices (post-MVP)
 
 ## Development
 

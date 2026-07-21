@@ -1,5 +1,4 @@
 import browser from "webextension-polyfill";
-import { CLOUD_VOICES } from "../tts/remote.js";
 
 const playButton = document.getElementById("play");
 const pauseButton = document.getElementById("pause");
@@ -8,8 +7,6 @@ const rateInput = document.getElementById("rate");
 const rateValue = document.getElementById("rate-value");
 const engineSelect = document.getElementById("engine");
 const voiceSelect = document.getElementById("voice");
-const apiKeyField = document.getElementById("apikey-field");
-const apiKeyInput = document.getElementById("apikey");
 const errorBox = document.getElementById("error");
 const status = document.getElementById("status");
 const statusText = document.getElementById("status-text");
@@ -23,12 +20,19 @@ const STATUS_TEXT = {
   stopped: "Stopped",
 };
 
-let currentState = "stopped";
-let settings = {
-  voice: null,
-  cloudVoice: "alloy",
-  localVoice: "en_US-lessac-medium",
+const LOCALE_LABELS = {
+  en_US: "English (US)",
+  en_GB: "English (UK)",
+  pt_PT: "Português (Portugal)",
+  pt_BR: "Português (Brasil)",
+  fr_FR: "Français",
+  es_ES: "Español",
+  de_DE: "Deutsch",
+  it_IT: "Italiano",
 };
+
+let currentState = "stopped";
+let settings = { voice: null, localVoice: "en_US-lessac-medium" };
 
 function renderState(state) {
   currentState = state;
@@ -46,6 +50,17 @@ function renderRate(rate) {
 function showError(message) {
   errorBox.textContent = message;
   errorBox.hidden = false;
+}
+
+/** "pt_PT-tugao-medium" -> "Tugao — Português (Portugal)" */
+function voiceLabel(name) {
+  const match = name.match(/^([a-z]{2}_[A-Z]{2})-(.+)-(x_low|low|medium|high)$/);
+  if (!match) return name;
+  const [, locale, speaker] = match;
+  const language = LOCALE_LABELS[locale] || locale.replace("_", "-");
+  const pretty =
+    speaker[0].toUpperCase() + speaker.slice(1).replace(/_/g, " ");
+  return `${pretty} — ${language}`;
 }
 
 async function getBrowserVoices() {
@@ -66,37 +81,29 @@ async function getBrowserVoices() {
 async function renderVoices() {
   const engine = engineSelect.value;
   voiceSelect.innerHTML = "";
-  apiKeyField.hidden = engine !== "cloud";
 
-  if (engine === "cloud") {
-    for (const name of CLOUD_VOICES) {
-      const option = document.createElement("option");
-      option.value = name;
-      option.textContent = name[0].toUpperCase() + name.slice(1);
-      voiceSelect.append(option);
-    }
-    voiceSelect.value = settings.cloudVoice || CLOUD_VOICES[0];
-  } else if (engine === "local") {
+  if (engine === "local") {
     const result = await browser.runtime.sendMessage({
       type: "calliope:list-local-voices",
     });
     if (result?.error || !result?.voices?.length) {
       const option = document.createElement("option");
       option.value = settings.localVoice || "";
-      option.textContent = settings.localVoice || "(server not running)";
+      option.textContent = settings.localVoice
+        ? voiceLabel(settings.localVoice)
+        : "(server not running)";
       voiceSelect.append(option);
       if (result?.error) showError(result.error);
     } else {
       for (const name of result.voices) {
         const option = document.createElement("option");
         option.value = name;
-        option.textContent = name;
+        option.textContent = voiceLabel(name);
         voiceSelect.append(option);
       }
-      voiceSelect.value =
-        result.voices.includes(settings.localVoice)
-          ? settings.localVoice
-          : result.default || result.voices[0];
+      voiceSelect.value = result.voices.includes(settings.localVoice)
+        ? settings.localVoice
+        : result.default || result.voices[0];
     }
   } else {
     const defaultOption = document.createElement("option");
@@ -118,16 +125,15 @@ async function init() {
     rate: 1,
     voice: null,
     engine: "local",
-    cloudVoice: "alloy",
     localVoice: "en_US-lessac-medium",
   });
   settings = stored;
-  rateInput.value = stored.rate;
-  renderRate(stored.rate);
-  engineSelect.value = stored.engine;
-
-  const { openaiApiKey } = await browser.storage.local.get("openaiApiKey");
-  if (openaiApiKey) apiKeyInput.value = openaiApiKey;
+  if (!["local", "browser"].includes(settings.engine)) {
+    settings.engine = "local"; // e.g. "cloud" left over from older versions
+  }
+  rateInput.value = settings.rate;
+  renderRate(settings.rate);
+  engineSelect.value = settings.engine;
 
   await renderVoices();
 
@@ -171,20 +177,13 @@ engineSelect.addEventListener("change", () => {
 });
 
 voiceSelect.addEventListener("change", () => {
-  if (engineSelect.value === "cloud") {
-    settings.cloudVoice = voiceSelect.value;
-    browser.storage.sync.set({ cloudVoice: voiceSelect.value });
-  } else if (engineSelect.value === "local") {
+  if (engineSelect.value === "local") {
     settings.localVoice = voiceSelect.value;
     browser.storage.sync.set({ localVoice: voiceSelect.value });
   } else {
     settings.voice = voiceSelect.value || null;
     browser.storage.sync.set({ voice: voiceSelect.value || null });
   }
-});
-
-apiKeyInput.addEventListener("change", () => {
-  browser.storage.local.set({ openaiApiKey: apiKeyInput.value.trim() });
 });
 
 browser.runtime.onMessage.addListener((message) => {

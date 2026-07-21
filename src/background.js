@@ -11,14 +11,17 @@ const playback = {
 const DEFAULT_SETTINGS = {
   rate: 1,
   voice: null, // browser-engine voice name
-  engine: "local", // "local" | "browser" | "cloud"
-  cloudVoice: "alloy",
+  engine: "local", // "local" | "browser"
   localVoice: "en_US-lessac-medium",
 };
 
 async function getSettings() {
   const stored = await browser.storage.sync.get(DEFAULT_SETTINGS);
-  return { ...DEFAULT_SETTINGS, ...stored };
+  const settings = { ...DEFAULT_SETTINGS, ...stored };
+  if (!["local", "browser"].includes(settings.engine)) {
+    settings.engine = "local"; // e.g. "cloud" left over from older versions
+  }
+  return settings;
 }
 
 async function ensureContentScript(tabId) {
@@ -54,9 +57,8 @@ async function readSelectionInTab(tabId, selectionText = null) {
     await sendToPlaybackTab({ type: "calliope:stop" });
   }
 
-  const { rate, voice, engine, cloudVoice, localVoice } = await getSettings();
-  const engineVoice =
-    engine === "cloud" ? cloudVoice : engine === "local" ? localVoice : voice;
+  const { rate, voice, engine, localVoice } = await getSettings();
+  const engineVoice = engine === "local" ? localVoice : voice;
   await browser.tabs.sendMessage(tabId, {
     type: "calliope:speak",
     text,
@@ -91,6 +93,8 @@ browser.runtime.onInstalled.addListener(() => {
     title: "Read with Calliope",
     contexts: ["selection"],
   });
+  // Clean up the API key stored by versions that had a cloud engine.
+  browser.storage.local.remove("openaiApiKey").catch(() => {});
 });
 
 browser.contextMenus.onClicked.addListener((info, tab) => {
@@ -104,8 +108,6 @@ browser.commands.onCommand.addListener(async (command) => {
   if (tab?.id) readSelectionInTab(tab.id);
 });
 
-const OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech";
-const OPENAI_TTS_MODEL = "gpt-4o-mini-tts";
 const LOCAL_TTS_URL = "http://127.0.0.1:8473";
 const LOCAL_SERVER_HINT =
   "Local Piper server is not running. Start it with: systemctl --user start calliope-piper";
@@ -150,46 +152,12 @@ async function listLocalVoices() {
   }
 }
 
-async function fetchCloudTTS({ text, voice }) {
-  const { openaiApiKey } = await browser.storage.local.get("openaiApiKey");
-  if (!openaiApiKey) {
-    return { error: "No OpenAI API key set — add one in the Calliope popup." };
-  }
-  try {
-    const response = await fetch(OPENAI_TTS_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: OPENAI_TTS_MODEL,
-        voice,
-        input: text,
-        response_format: "mp3",
-      }),
-    });
-    if (!response.ok) {
-      const detail = (await response.text()).slice(0, 200);
-      return { error: `OpenAI TTS error ${response.status}: ${detail}` };
-    }
-    return {
-      audio: arrayBufferToBase64(await response.arrayBuffer()),
-      mime: "audio/mp3",
-    };
-  } catch (err) {
-    return { error: `Cloud TTS request failed: ${err.message || err}` };
-  }
-}
-
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message?.type) {
-    // Content script asks for synthesized audio (keys + host permissions
-    // live here, and background fetches are exempt from page CORS).
+    // Content script asks for synthesized audio (the host permission lives
+    // here, and background fetches are exempt from page CORS).
     case "calliope:fetch-tts":
-      return message.engine === "local"
-        ? fetchLocalTTS(message)
-        : fetchCloudTTS(message);
+      return fetchLocalTTS(message);
     case "calliope:list-local-voices":
       return listLocalVoices();
     // Engine state reported by the content script doing the reading.

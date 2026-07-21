@@ -2,34 +2,18 @@ import browser from "webextension-polyfill";
 import { TTSEngine } from "./engine.js";
 import { chunkText } from "./webspeech.js";
 
-/** Voices offered by the OpenAI speech API. */
-export const CLOUD_VOICES = [
-  "alloy",
-  "ash",
-  "ballad",
-  "coral",
-  "echo",
-  "fable",
-  "nova",
-  "onyx",
-  "sage",
-  "shimmer",
-];
-
 /**
- * TTS engine that plays audio fetched from a remote synthesizer — either the
- * OpenAI speech API ("cloud") or the local Piper server ("local").
+ * TTS engine that plays audio synthesized by the local Piper server
+ * (http://127.0.0.1:8473 — see tools/piper-server.py).
  *
  * Runs in the content script; audio fetching is delegated to the background
- * script (which holds the host permissions and API key) via
- * "calliope:fetch-tts" messages returning base64 audio. Chunks are played
- * sequentially with the next chunk prefetched during playback.
+ * script (which holds the host permission) via "calliope:fetch-tts" messages
+ * returning base64 WAV. Chunks are played sequentially with the next chunk
+ * prefetched during playback.
  */
-export class RemoteTTSEngine extends TTSEngine {
-  /** @param {"cloud"|"local"} engineId */
-  constructor(engineId) {
+export class LocalTTSEngine extends TTSEngine {
+  constructor() {
     super();
-    this.engineId = engineId;
     this.rate = 1;
     this.voice = null;
     this.queue = [];
@@ -94,7 +78,6 @@ export class RemoteTTSEngine extends TTSEngine {
         index,
         browser.runtime.sendMessage({
           type: "calliope:fetch-tts",
-          engine: this.engineId,
           text: this.queue[index],
           voice: this.voice,
         })
@@ -122,8 +105,7 @@ export class RemoteTTSEngine extends TTSEngine {
       return;
     }
 
-    const mime = result.mime || "audio/mp3";
-    const audio = new Audio(`data:${mime};base64,${result.audio}`);
+    const audio = new Audio(`data:audio/wav;base64,${result.audio}`);
     audio.playbackRate = this.rate;
     audio.preservesPitch = true;
     audio.onended = () => {
