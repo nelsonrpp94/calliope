@@ -12,6 +12,16 @@ const apiKeyField = document.getElementById("apikey-field");
 const apiKeyInput = document.getElementById("apikey");
 const errorBox = document.getElementById("error");
 const status = document.getElementById("status");
+const statusText = document.getElementById("status-text");
+const playLabel = document.getElementById("play-label");
+const settingsToggle = document.getElementById("settings-toggle");
+const settingsPanel = document.getElementById("settings");
+
+const STATUS_TEXT = {
+  playing: "Reading…",
+  paused: "Paused",
+  stopped: "Stopped",
+};
 
 let currentState = "stopped";
 let settings = {
@@ -23,14 +33,14 @@ let settings = {
 function renderState(state) {
   currentState = state;
   status.dataset.state = state;
-  status.textContent = state[0].toUpperCase() + state.slice(1);
-  playButton.textContent = state === "paused" ? "▶ Resume" : "▶ Play";
+  statusText.textContent = STATUS_TEXT[state] || state;
+  playLabel.textContent = state === "paused" ? "Resume" : "Play";
   pauseButton.disabled = state !== "playing";
   stopButton.disabled = state === "stopped";
 }
 
 function renderRate(rate) {
-  rateValue.textContent = `${Number(rate).toFixed(1)}×`;
+  rateValue.textContent = `${Number(rate).toFixed(1)}x`;
 }
 
 function showError(message) {
@@ -148,6 +158,10 @@ rateInput.addEventListener("input", () => {
 
 rateInput.addEventListener("change", () => {
   browser.storage.sync.set({ rate: Number(rateInput.value) });
+});
+
+settingsToggle.addEventListener("click", () => {
+  settingsPanel.hidden = !settingsPanel.hidden;
 });
 
 engineSelect.addEventListener("change", () => {

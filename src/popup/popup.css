@@ -1,84 +1,232 @@
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
+  color-scheme: light;
+  --ink: #2b2660;
+  --ink-soft: #6e6a8f;
+  --purple: #6c4bd8;
+  --purple-soft: #e5def7;
+  --cream: #f7f3ec;
+  --card: #ffffff;
+  --line: #ece7f6;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 body {
   margin: 0;
-  padding: 12px 14px;
-  width: 260px;
+  padding: 14px;
+  width: 296px;
   font-size: 13px;
+  color: var(--ink);
+  background: var(--cream);
 }
 
 header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand img {
+  border-radius: 8px;
 }
 
 h1 {
   margin: 0;
-  font-size: 16px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--purple-soft);
+  color: var(--ink);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(43, 38, 96, 0.06);
+}
+
+.card + .card {
+  margin-top: 10px;
+}
+
+/* --- transport controls --- */
+
+.controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-evenly;
+  padding: 2px 0 4px;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.round {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1.5px solid var(--purple-soft);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.round:hover:not(:disabled) {
+  background: var(--purple-soft);
+}
+
+.round:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.round.primary {
+  width: 60px;
+  height: 60px;
+  border: none;
+  background: var(--purple);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(108, 75, 216, 0.35);
+}
+
+.round.primary:hover:not(:disabled) {
+  background: #5d3ec7;
+}
+
+.round:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+.divider {
+  height: 1px;
+  margin: 14px -16px;
+  background: var(--line);
+}
+
+/* --- speed & voice sections --- */
+
+.section .row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+#rate-value {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+input[type="range"] {
+  width: 100%;
+  margin: 10px 0 6px;
+  accent-color: var(--purple);
+}
+
+.minmax {
+  color: var(--ink-soft);
+  font-size: 11.5px;
+}
+
+.section select,
+.field select,
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 9px 10px;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+}
+
+.section select:focus,
+.field select:focus,
+.field input:focus {
+  outline: none;
+  border-color: var(--purple);
+}
+
+/* --- status row --- */
+
 #status {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 12%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-weight: 600;
 }
 
 #status[data-state="playing"] {
-  color: #1a7f37;
+  color: var(--purple);
 }
 
 #status[data-state="paused"] {
   color: #9a6700;
 }
 
-.controls {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.controls button {
-  flex: 1;
-  padding: 6px 0;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.controls button:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
+/* --- settings panel --- */
 
 .field {
   display: block;
-  margin-bottom: 10px;
+}
+
+.field + .field {
+  margin-top: 12px;
 }
 
 .field > span {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
   font-weight: 600;
-}
-
-.field input[type="range"],
-.field input[type="password"],
-.field select {
-  width: 100%;
-  box-sizing: border-box;
+  font-size: 13.5px;
 }
 
 #error {
-  margin: 6px 0 0;
-  padding: 6px 8px;
-  border-radius: 6px;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
   font-size: 12px;
-  color: #d1242f;
-  background: color-mix(in srgb, #d1242f 10%, transparent);
+  color: #b3261e;
+  background: #f9e3e1;
 }
