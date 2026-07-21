@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Calliope",
+  "name": "CalliopeReads",
   "version": "0.1.0",
   "description": "Reads selected text aloud with a human voice. Select, play, listen.",
   "permissions": ["contextMenus", "storage", "activeTab", "scripting", "offscreen"],

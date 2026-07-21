@@ -1,6 +1,6 @@
-# Calliope 🎙️
+# CalliopeReads 🎙️
 
-**Calliope** is a browser extension for Chrome and Firefox that reads selected text aloud with a natural human voice. Select text on any page, choose your reading speed, hit play — and listen.
+**CalliopeReads** is a browser extension for Chrome and Firefox that reads selected text aloud with a natural human voice. Select text on any page, choose your reading speed, hit play — and listen.
 
 Named after the Greek muse of eloquence and epic poetry.
 
