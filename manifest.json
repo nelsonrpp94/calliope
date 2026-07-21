@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Reads selected text aloud with a human voice. Select, play, listen.",
   "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
-  "host_permissions": ["https://api.openai.com/*"],
+  "host_permissions": ["https://api.openai.com/*", "http://127.0.0.1/*"],
   "background": {
     "service_worker": "background.js"
   },

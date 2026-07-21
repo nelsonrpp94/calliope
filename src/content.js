@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
 import { WebSpeechEngine } from "./tts/webspeech.js";
-import { OpenAICloudEngine } from "./tts/cloud.js";
+import { RemoteTTSEngine } from "./tts/remote.js";
 
 // Injected on demand via scripting.executeScript; guard against running twice.
 if (!window.__calliopeLoaded) {
@@ -8,9 +8,10 @@ if (!window.__calliopeLoaded) {
 
   const engines = {
     browser: new WebSpeechEngine(),
-    cloud: new OpenAICloudEngine(),
+    cloud: new RemoteTTSEngine("cloud"),
+    local: new RemoteTTSEngine("local"),
   };
-  let active = engines.browser;
+  let active = engines.local;
 
   const reportState = (state) => {
     browser.runtime
@@ -19,6 +20,7 @@ if (!window.__calliopeLoaded) {
   };
   engines.browser.onstatechange = reportState;
   engines.cloud.onstatechange = reportState;
+  engines.local.onstatechange = reportState;
 
   browser.runtime.onMessage.addListener((message) => {
     switch (message?.type) {

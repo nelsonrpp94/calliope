@@ -17,18 +17,21 @@ export const CLOUD_VOICES = [
 ];
 
 /**
- * Cloud TTS engine backed by the OpenAI speech API.
+ * TTS engine that plays audio fetched from a remote synthesizer — either the
+ * OpenAI speech API ("cloud") or the local Piper server ("local").
  *
  * Runs in the content script; audio fetching is delegated to the background
- * script (which holds the host permission and API key) via
- * "calliope:fetch-tts" messages returning base64 mp3. Chunks are played
+ * script (which holds the host permissions and API key) via
+ * "calliope:fetch-tts" messages returning base64 audio. Chunks are played
  * sequentially with the next chunk prefetched during playback.
  */
-export class OpenAICloudEngine extends TTSEngine {
-  constructor() {
+export class RemoteTTSEngine extends TTSEngine {
+  /** @param {"cloud"|"local"} engineId */
+  constructor(engineId) {
     super();
+    this.engineId = engineId;
     this.rate = 1;
-    this.voice = CLOUD_VOICES[0];
+    this.voice = null;
     this.queue = [];
     this.index = 0;
     this.audio = null;
@@ -82,13 +85,7 @@ export class OpenAICloudEngine extends TTSEngine {
   }
 
   listVoices() {
-    return Promise.resolve(
-      CLOUD_VOICES.map((name) => ({
-        name,
-        lang: "multi",
-        default: name === CLOUD_VOICES[0],
-      }))
-    );
+    return Promise.resolve([]); // voice lists are handled by the popup
   }
 
   _fetchChunk(index) {
@@ -97,6 +94,7 @@ export class OpenAICloudEngine extends TTSEngine {
         index,
         browser.runtime.sendMessage({
           type: "calliope:fetch-tts",
+          engine: this.engineId,
           text: this.queue[index],
           voice: this.voice,
         })
@@ -124,7 +122,8 @@ export class OpenAICloudEngine extends TTSEngine {
       return;
     }
 
-    const audio = new Audio(`data:audio/mp3;base64,${result.audio}`);
+    const mime = result.mime || "audio/mp3";
+    const audio = new Audio(`data:${mime};base64,${result.audio}`);
     audio.playbackRate = this.rate;
     audio.preservesPitch = true;
     audio.onended = () => {
@@ -146,7 +145,7 @@ export class OpenAICloudEngine extends TTSEngine {
     browser.runtime
       .sendMessage({
         type: "calliope:error",
-        message: message || "Cloud TTS failed",
+        message: message || "Speech synthesis failed",
       })
       .catch(() => {});
     this.stop();

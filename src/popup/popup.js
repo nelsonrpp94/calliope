@@ -1,5 +1,5 @@
 import browser from "webextension-polyfill";
-import { CLOUD_VOICES } from "../tts/cloud.js";
+import { CLOUD_VOICES } from "../tts/remote.js";
 
 const playButton = document.getElementById("play");
 const pauseButton = document.getElementById("pause");
@@ -14,7 +14,11 @@ const errorBox = document.getElementById("error");
 const status = document.getElementById("status");
 
 let currentState = "stopped";
-let settings = { voice: null, cloudVoice: "alloy" };
+let settings = {
+  voice: null,
+  cloudVoice: "alloy",
+  localVoice: "en_US-lessac-medium",
+};
 
 function renderState(state) {
   currentState = state;
@@ -62,6 +66,28 @@ async function renderVoices() {
       voiceSelect.append(option);
     }
     voiceSelect.value = settings.cloudVoice || CLOUD_VOICES[0];
+  } else if (engine === "local") {
+    const result = await browser.runtime.sendMessage({
+      type: "calliope:list-local-voices",
+    });
+    if (result?.error || !result?.voices?.length) {
+      const option = document.createElement("option");
+      option.value = settings.localVoice || "";
+      option.textContent = settings.localVoice || "(server not running)";
+      voiceSelect.append(option);
+      if (result?.error) showError(result.error);
+    } else {
+      for (const name of result.voices) {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        voiceSelect.append(option);
+      }
+      voiceSelect.value =
+        result.voices.includes(settings.localVoice)
+          ? settings.localVoice
+          : result.default || result.voices[0];
+    }
   } else {
     const defaultOption = document.createElement("option");
     defaultOption.value = "";
@@ -81,8 +107,9 @@ async function init() {
   const stored = await browser.storage.sync.get({
     rate: 1,
     voice: null,
-    engine: "browser",
+    engine: "local",
     cloudVoice: "alloy",
+    localVoice: "en_US-lessac-medium",
   });
   settings = stored;
   rateInput.value = stored.rate;
@@ -133,6 +160,9 @@ voiceSelect.addEventListener("change", () => {
   if (engineSelect.value === "cloud") {
     settings.cloudVoice = voiceSelect.value;
     browser.storage.sync.set({ cloudVoice: voiceSelect.value });
+  } else if (engineSelect.value === "local") {
+    settings.localVoice = voiceSelect.value;
+    browser.storage.sync.set({ localVoice: voiceSelect.value });
   } else {
     settings.voice = voiceSelect.value || null;
     browser.storage.sync.set({ voice: voiceSelect.value || null });
