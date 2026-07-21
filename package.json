@@ -1,0 +1,18 @@
+{
+  "name": "calliope",
+  "version": "0.1.0",
+  "description": "Browser extension that reads selected text aloud with a human voice",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "node build.js --watch",
+    "build": "node build.js",
+    "build:firefox": "BUILD_TARGET=firefox node build.js",
+    "firefox": "npm run build:firefox && web-ext run --source-dir dist"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.5",
+    "web-ext": "^7.12.0",
+    "webextension-polyfill": "^0.12.0"
+  }
+}

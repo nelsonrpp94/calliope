@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Calliope",
+  "version": "0.1.0",
+  "description": "Reads selected text aloud with a human voice. Select, play, listen.",
+  "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Calliope — read selection aloud",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "read-selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      },
+      "description": "Read the current selection aloud"
+    }
+  }
+}

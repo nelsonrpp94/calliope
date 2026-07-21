@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Calliope</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Calliope</h1>
+      <span id="status" data-state="stopped">Stopped</span>
+    </header>
+
+    <div class="controls">
+      <button id="play" title="Read selection (or resume)">▶ Play</button>
+      <button id="pause" title="Pause" disabled>⏸ Pause</button>
+      <button id="stop" title="Stop" disabled>⏹ Stop</button>
+    </div>
+
+    <label class="field">
+      <span>Speed <output id="rate-value">1.0×</output></span>
+      <input
+        id="rate"
+        type="range"
+        min="0.5"
+        max="3"
+        step="0.1"
+        value="1"
+      />
+    </label>
+
+    <label class="field">
+      <span>Voice</span>
+      <select id="voice">
+        <option value="">System default</option>
+      </select>
+    </label>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
