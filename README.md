@@ -69,9 +69,9 @@ npm run build      # production build
 npm run firefox    # run in Firefox via web-ext
 ```
 
-Load in Chrome: `chrome://extensions` → enable Developer mode → "Load unpacked" → select the `dist/` folder.
+Load in Chrome/Brave/Edge: `chrome://extensions` (or `brave://extensions`) → enable Developer mode → "Load unpacked" → select the `dist/chrome/` folder.
 
-Load in Firefox: `about:debugging` → "This Firefox" → "Load Temporary Add-on" → select `dist/manifest.json` (or use `npm run firefox`).
+Load in Firefox: `about:debugging` → "This Firefox" → "Load Temporary Add-on" → select `dist/firefox/manifest.json` (or use `npm run firefox`).
 
 ## License
 

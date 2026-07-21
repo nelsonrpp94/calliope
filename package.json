@@ -8,7 +8,7 @@
     "dev": "node build.js --watch",
     "build": "node build.js",
     "build:firefox": "BUILD_TARGET=firefox node build.js",
-    "firefox": "npm run build:firefox && web-ext run --source-dir dist"
+    "firefox": "npm run build:firefox && web-ext run --source-dir dist/firefox"
   },
   "devDependencies": {
     "esbuild": "^0.21.5",

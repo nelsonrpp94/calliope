@@ -3,9 +3,9 @@
  * copies static assets plus the manifest for the chosen target.
  *
  * Usage:
- *   node build.js                 # production build for Chrome
+ *   node build.js                 # production build for Chrome -> dist/chrome
  *   node build.js --watch         # watch mode
- *   BUILD_TARGET=firefox node build.js
+ *   BUILD_TARGET=firefox node build.js   # -> dist/firefox
  */
 const esbuild = require("esbuild");
 const fs = require("fs");
@@ -13,7 +13,7 @@ const path = require("path");
 
 const watch = process.argv.includes("--watch");
 const target = process.env.BUILD_TARGET || "chrome";
-const outdir = path.join(__dirname, "dist");
+const outdir = path.join(__dirname, "dist", target);
 
 function buildManifest() {
   const base = JSON.parse(fs.readFileSync("manifest.json", "utf8"));
