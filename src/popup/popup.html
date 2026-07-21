@@ -30,11 +30,26 @@
     </label>
 
     <label class="field">
+      <span>Engine</span>
+      <select id="engine">
+        <option value="browser">System voices (free)</option>
+        <option value="cloud">OpenAI cloud (premium)</option>
+      </select>
+    </label>
+
+    <label class="field">
       <span>Voice</span>
       <select id="voice">
         <option value="">System default</option>
       </select>
     </label>
+
+    <label class="field" id="apikey-field" hidden>
+      <span>OpenAI API key</span>
+      <input id="apikey" type="password" placeholder="sk-…" autocomplete="off" />
+    </label>
+
+    <p id="error" hidden></p>
 
     <script src="popup.js"></script>
   </body>

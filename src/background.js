@@ -8,7 +8,12 @@ const playback = {
   tabId: null,
 };
 
-const DEFAULT_SETTINGS = { rate: 1, voice: null };
+const DEFAULT_SETTINGS = {
+  rate: 1,
+  voice: null, // browser-engine voice name
+  engine: "browser", // "browser" | "cloud"
+  cloudVoice: "alloy",
+};
 
 async function getSettings() {
   const stored = await browser.storage.sync.get(DEFAULT_SETTINGS);
@@ -48,12 +53,13 @@ async function readSelectionInTab(tabId, selectionText = null) {
     await sendToPlaybackTab({ type: "calliope:stop" });
   }
 
-  const { rate, voice } = await getSettings();
+  const { rate, voice, engine, cloudVoice } = await getSettings();
   await browser.tabs.sendMessage(tabId, {
     type: "calliope:speak",
     text,
     rate,
-    voice,
+    engine,
+    voice: engine === "cloud" ? cloudVoice : voice,
   });
   setState("playing", tabId);
 }
@@ -95,8 +101,54 @@ browser.commands.onCommand.addListener(async (command) => {
   if (tab?.id) readSelectionInTab(tab.id);
 });
 
+const OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech";
+const OPENAI_TTS_MODEL = "gpt-4o-mini-tts";
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+async function fetchCloudTTS({ text, voice }) {
+  const { openaiApiKey } = await browser.storage.local.get("openaiApiKey");
+  if (!openaiApiKey) {
+    return { error: "No OpenAI API key set — add one in the Calliope popup." };
+  }
+  try {
+    const response = await fetch(OPENAI_TTS_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openaiApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: OPENAI_TTS_MODEL,
+        voice,
+        input: text,
+        response_format: "mp3",
+      }),
+    });
+    if (!response.ok) {
+      const detail = (await response.text()).slice(0, 200);
+      return { error: `OpenAI TTS error ${response.status}: ${detail}` };
+    }
+    return { audio: arrayBufferToBase64(await response.arrayBuffer()) };
+  } catch (err) {
+    return { error: `Cloud TTS request failed: ${err.message || err}` };
+  }
+}
+
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message?.type) {
+    // Content script asks for synthesized audio (key + host permission
+    // live here, and background fetches are exempt from page CORS).
+    case "calliope:fetch-tts":
+      return fetchCloudTTS(message);
     // Engine state reported by the content script doing the reading.
     case "calliope:state-change":
       if (sender.tab?.id === playback.tabId) {
